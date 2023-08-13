@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OP Chain Profitability Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #FF0042, #f1f1f1);
+            font-family: 'Montserrat', sans-serif;
+            color: #ffffff;
+            overflow: hidden; /* Hide overflow to ensure emojis stay within the viewport */
+            position: relative;
+        }
+        .emoji-container { /* Container for emojis */
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Place behind the modal */
+            overflow: hidden;
+        }
+        .emoji { /* Styling for individual emojis */
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0;
+        }
+        .calculator-container {
+            width: 80%;
+            max-width: 600px;
+            margin: 50px auto;
+            background: linear-gradient(to right, #E9003C, #e0e0e0);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 0px 30px rgba(201, 87, 87, 0.2); /* Enhanced 3D shadow */
+            transform: perspective(1000px) translateZ(0); /* 3D effect */
+        }
+        .eth-price-container input[type="number"] {
+            width: 100%;
+            padding: 5px;
+            border-radius: 5px;
+            border: none;
+            box-shadow: 2px 2px 5px rgba(166, 87, 87, 0.1);
+            outline: none;
+            background: transparent;
+            color: #ffffff;
+        }
+        .slider-container input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 10px;
+            border-radius: 2.5px;
+            background: #FF0042;
+            outline: none;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50px;
+            background: #ffffff;
+            cursor: pointer;
+        }
+        .slider-value, label, #ethPriceValue {
+            color: #ffffff; /* Color set to black */
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            background: #FF0042;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #cc0036;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #profitChart {
+            width: 100%;
+            height: 300px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.0/chart.min.js"></script>
+    <script>
+        function updateSliderValue(sliderId, displayId) {
+            const value = document.getElementById(sliderId).value;
+            document.getElementById(displayId).innerText = value.toLocaleString();
+        }
+
+        function drawChart(profitData) {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, '#FF0042');
+            gradient.addColorStop(1, '#f4f4f4');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: profitData.labels,
+                    datasets: [{
+                        label: 'Yearly Dollar Profit',
+                        data: profitData.data,
+                        borderColor: '#FF0042',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { beginAtZero: true, ticks: { color: '#ffffff' } }, /* X-axis labels color set to black */
+                        y: { beginAtZero: true, ticks: { color: '#ffffff' } }  /* Y-axis labels color set to black */
+                    }
+                }
+            });
+        }
+
+       function spawnEmojis(isProfitable) {
+            const emojiContainer = document.querySelector('.emoji-container');
+            emojiContainer.innerHTML = ''; // Clear existing emojis
+
+            // Choose emoji based on profitability
+            const emoji = isProfitable ? '🥳🔴🔵🟠🟣🥳' : '👉🔴👈';
+
+            // Create and animate emojis
+            for (let i = 0; i < 20; i++) { // Spawn 20 emojis
+                const emojiElement = document.createElement('div');
+                emojiElement.className = 'emoji';
+                emojiElement.innerText = emoji;
+                emojiElement.style.left = Math.random() * 100 + 'vw'; // Random horizontal position
+                emojiElement.style.animation = `float ${2 + Math.random() * 3}s linear infinite`; // Random animation duration
+                emojiElement.style.animationDelay = `-${Math.random() * 3}s`; // Random animation delay
+                emojiContainer.appendChild(emojiElement);
+            }
+        }
+
+        function calculateProfit() {
+            const txnsPerDay = document.getElementById('txnsPerDay').value;
+            const ethPrice = document.getElementById('ethPrice').value || 0;
+
+            const revenuePerTx = 0.00010238 * txnsPerDay;
+            const costs = (txnsPerDay * 0.00007898) + 1.22;
+            const profit = revenuePerTx - costs;
+            const profitShare = profit * 0.7;
+            const revenueShare = (revenuePerTx * 0.9) - costs;
+            const monthlyProfit = (profitShare < revenueShare ? profitShare : revenueShare) * 30;
+            const yearlyProfit = monthlyProfit * 12;
+            const yearlyDollarProfit = yearlyProfit * ethPrice;
+            const profitInETH = yearlyDollarProfit / ethPrice;
+
+           const isProfitable = yearlyDollarProfit > 0;
+
+
+            const message = yearlyDollarProfit > 0
+                ? `You would be profitable! Yearly Dollar Profit: $${yearlyDollarProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}, Profit in ETH: ${profitInETH.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                : 'You would not be profitable, consider launching on OP mainnet first and then laddering up to a chain after.';
+            document.getElementById('result').innerText = message;
+
+            const labels = [];
+            const data = [];
+            for (let i = 1000; i <= txnsPerDay; i += 5000) {
+                labels.push(i.toLocaleString());
+                const revenuePerTxLoop = 0.00010238 * i;
+                const costsLoop = (i * 0.00007898) + 1.22;
+                const profitLoop = revenuePerTxLoop - costsLoop;
+                const profitShareLoop = profitLoop * 0.7;
+                const revenueShareLoop = (revenuePerTxLoop * 0.9) - costsLoop;
+                const monthlyProfitLoop = (profitShareLoop < revenueShareLoop ? profitShareLoop : revenueShareLoop) * 30;
+                const yearlyProfitLoop = monthlyProfitLoop * 12;
+                const yearlyDollarProfitLoop = yearlyProfitLoop * ethPrice;
+                data.push(yearlyDollarProfitLoop);
+            }
+
+            drawChart({ labels, data });
+        }
+    </script>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>Should you launch an OPchain? 🔴</h1>
+        <div class="eth-price-container">
+            <label for="ethPrice">ETH Price (USD): </label>
+            <input type="number" id="ethPrice" value="1000" min="1000" max="2000000" step="100">
+        </div>
+        <div class="slider-container">
+            <label for="txnsPerDay">Transactions per Day: </label>
+            <input type="range" id="txnsPerDay" min="1000" max="2000000" step="100" oninput="updateSliderValue('txnsPerDay', 'txnsPerDayValue')">
+            <span class="slider-value" id="txnsPerDayValue">1000</span>
+        </div>
+        <button onclick="calculateProfit()">Calculate Profit</button>
+        <p id="result"></p>
+        <canvas id="profitChart"></canvas>
+    </div>
+</body>
+</html>
